@@ -4,8 +4,9 @@ from io import BytesIO
 import tarfile
 from contextlib import closing
 from datetime import datetime, date
-
+from azure.storage.blob import BlockBlobService
 import requests
+import tarfile
 
 
 def bounds(geom):
@@ -175,3 +176,39 @@ def url_retrieve_and_unpack(url, path, overwrite=False):
     with closing(r), tarfile.open(fileobj=BytesIO(r.content)) as archive:
         archive.extractall(path=path)
     return path
+
+def url_retrieve_and_unpack_azure(url, container_name, storage_name, storage_key):
+    """Generic function to combine download and unpacking of tar archives, with
+    in memory retrieval of unpacked archive and direct download to azure blob 
+    storage.
+
+    Downloads the tar archive as a memory object and extracts its content to a
+    new blob container. Container name is the region name specified 
+    in azure config file.
+
+    Args:
+        url (str): Url pointing to tar file to retrieve
+        dst_path (str): Path to container under which a new container containing the
+            archive content (bands for a single scene) will be created
+        overwrite (bool): Force overwriting local files even when the output
+            directory already exist? Defaults to False
+
+    Returns:
+        str: The azure path of the extracted content
+    """
+    block_blob_service = BlockBlobService(account_name=storage_name, account_key=storage_key)
+    if block_blob_service.exists(container_name) == False:
+        block_blob_service.create_container(container_name)
+        
+    blob_prefix = url.split('/')[-1].split('.')[0]
+
+    r = requests.get(url)
+    print(r.content)
+    with closing(r), tarfile.open(fileobj=BytesIO(r.content)) as archive:
+        for member in archive.getnames():
+            print(member)
+            file_bytes = archive.extractfile(member).read()
+            member_name = blob_prefix + member
+            block_blob_service.create_blob_from_bytes(container_name, blob_name = member_name, blob = file_bytes)
+    print(container_name+member_name)
+    return container_name+member_name
