@@ -177,9 +177,21 @@ def url_retrieve_and_unpack(url, path, overwrite=False):
         archive.extractall(path=path)
     return path
 
-def url_retrieve_and_unpack_azure(url, container_name, storage_name, storage_key):
-    """Generic function to combine download and unpacking of tar archives, with
-    in memory retrieval of unpacked archive and direct download to azure blob 
+
+def url_retrieve_simple(url):
+    """Generic function to retrieve the url.
+
+    Args:
+        url (str): Url pointing to tar file to retrieve
+
+    Returns:
+        str: The http response object
+    """
+    r = requests.get(url)
+    return r
+
+def unpack_in_memory_and_download(r, url, container_name, storage_name, storage_key):
+    """In memory retrieval of unpacked archive and direct download to azure blob 
     storage.
 
     Downloads the tar archive as a memory object and extracts its content to a
@@ -188,27 +200,22 @@ def url_retrieve_and_unpack_azure(url, container_name, storage_name, storage_key
 
     Args:
         url (str): Url pointing to tar file to retrieve
-        dst_path (str): Path to container under which a new container containing the
-            archive content (bands for a single scene) will be created
-        overwrite (bool): Force overwriting local files even when the output
-            directory already exist? Defaults to False
+        container_name (str): Container to contain the archive content 
+        (scene folders with bands for a single scene)
+        storage_name (str): Name of the storage account
+        storage_key (str): Key of the storage account
 
     Returns:
-        str: The azure path of the extracted content
+        st
     """
     block_blob_service = BlockBlobService(account_name=storage_name, account_key=storage_key)
     if block_blob_service.exists(container_name) == False:
         block_blob_service.create_container(container_name)
-        
+
     blob_prefix = url.split('/')[-1].split('.')[0]
 
-    r = requests.get(url)
-    print(r.content)
     with closing(r), tarfile.open(fileobj=BytesIO(r.content)) as archive:
         for member in archive.getnames():
-            print(member)
             file_bytes = archive.extractfile(member).read()
-            member_name = blob_prefix + member
+            member_name = blob_prefix + "/" + member
             block_blob_service.create_blob_from_bytes(container_name, blob_name = member_name, blob = file_bytes)
-    print(container_name+member_name)
-    return container_name+member_name

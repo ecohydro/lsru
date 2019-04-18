@@ -12,7 +12,7 @@ except ImportError:
 
 import requests
 
-from .utils import url_retrieve, url_retrieve_and_unpack, url_retrieve_and_unpack_azure
+from .utils import url_retrieve, url_retrieve_and_unpack, url_retrieve_simple, unpack_in_memory_and_download
 
 __version__ = "0.5.2"
 
@@ -478,7 +478,12 @@ class Order(_EspaBase):
                 print('%s skipped. Reason: %s' % (filename, e))
 
     def download_all_complete_azure(self, container_name, storage_name, storage_key):
-        """Download all completed scenes of the order to a folder
+        """Downloads all completed scenes of the order to Azure blob storage. All
+           products for a scene are placed within a "folder" on Azure blob storage.
+           The folder name is the tar archive name and the products retain their
+           original file names. Download is sequential and will take a long time,
+           it is recommended to run this in the background or as a submitted job
+           on a server.
 
         Args:
             container_name (str): Container where scene data are to be downloaded
@@ -486,7 +491,7 @@ class Order(_EspaBase):
             storage_key (str): key for the storage account
 
             Returns:
-                Used for its side effect of batch downloading data to azure, no 
+                Used for its side effect of batch downloading data to azure, no
                 return
         """
         for url in self.urls_completed:
@@ -494,7 +499,8 @@ class Order(_EspaBase):
             try:
                 print('Downloading %s' % filename)
 
-                url_retrieve_and_unpack_azure(url, container_name, storage_name, storage_key)
+                r = url_retrieve_simple(url)
+                unpack_in_memory_and_download(r, url, container_name, storage_name, storage_key)
 
             except Exception as e:
                 print('%s skipped. Reason: %s' % (filename, e))
