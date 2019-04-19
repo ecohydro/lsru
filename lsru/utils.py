@@ -1,3 +1,13 @@
+import logging
+import os
+# create logger
+logger = logging.getLogger('azure_downloader')
+logger.setLevel(logging.INFO)
+# create file handler which logs even debug messages
+fh = logging.FileHandler(os.path.expanduser('~/azure_downloader.log'))
+fh.setLevel(logging.INFO)
+logger.addHandler(fh)
+
 import re
 import os
 from io import BytesIO
@@ -203,12 +213,12 @@ def url_retrieve_and_unpack_azure(url, container_name, storage_name, storage_key
     blob_prefix = url.split('/')[-1].split('.')[0]
 
     r = requests.get(url)
-    print(r.content)
     with closing(r), tarfile.open(fileobj=BytesIO(r.content)) as archive:
         for member in archive.getnames():
-            print(member)
-            file_bytes = archive.extractfile(member).read()
-            member_name = blob_prefix + member
-            block_blob_service.create_blob_from_bytes(container_name, blob_name = member_name, blob = file_bytes)
-    print(container_name+member_name)
-    return container_name+member_name
+            if member == 'stats': # stats gets unpacked as a folder, needs to be skipped if selected
+                pass
+            else:
+                logger.info(member)
+                file_bytes = archive.extractfile(member).read()
+                member_name = blob_prefix + member
+                block_blob_service.create_blob_from_bytes(container_name, blob_name = member_name, blob = file_bytes)
