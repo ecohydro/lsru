@@ -477,7 +477,7 @@ class Order(_EspaBase):
             except Exception as e:
                 print('%s skipped. Reason: %s' % (filename, e))
 
-    def download_all_complete_azure(self, container_name, storage_name, storage_key):
+    def download_all_complete_azure(self, container_name, region_name, storage_name, storage_key):
         """Downloads all completed scenes of the order to Azure blob storage. All
            products for a scene are placed within a "folder" on Azure blob storage.
            The folder name is the tar archive name and the products retain their
@@ -487,6 +487,8 @@ class Order(_EspaBase):
 
         Args:
             container_name (str): Container where scene data are to be downloaded
+            region_name: Name of the region for which imagery is downloaded. tar 
+                files will be extracted to container_name/region_name/
             storage_name (str): name of the storage account
             storage_key (str): key for the storage account
 
@@ -500,7 +502,7 @@ class Order(_EspaBase):
                 print('Downloading %s' % filename)
 
                 r = url_retrieve_simple(url)
-                unpack_in_memory_and_download(r, url, container_name, storage_name, storage_key)
+                unpack_in_memory_and_download(r, url, container_name, region_name, storage_name, storage_key)
 
             except Exception as e:
                 print('%s skipped. Reason: %s' % (filename, e))

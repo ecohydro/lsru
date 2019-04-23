@@ -200,7 +200,7 @@ def url_retrieve_simple(url):
     r = requests.get(url)
     return r
 
-def unpack_in_memory_and_download(r, url, container_name, storage_name, storage_key):
+def unpack_in_memory_and_download(r, url, container_name, region_name, storage_name, storage_key):
     """In memory retrieval of unpacked archive and direct download to azure blob 
     storage.
 
@@ -232,5 +232,5 @@ def unpack_in_memory_and_download(r, url, container_name, storage_name, storage_
             else:
                 logger.info(member)
                 file_bytes = archive.extractfile(member).read()
-                member_name = blob_prefix + "/" + member
+                member_name = region_name + "/" + blob_prefix + "/" + member
                 block_blob_service.create_blob_from_bytes(container_name, blob_name = member_name, blob = file_bytes)
